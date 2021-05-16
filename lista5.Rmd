@@ -1,0 +1,53 @@
+---
+title: "Estatística Espacial - MAT02040 - Lista 4"
+author: | 
+    | IME - Universidade Federal do Rio Grande do Sul
+    | Prof.ª Márcia Barbian
+    | Alunos: Alisson Neimaier, Enzo Bertoldi, Gabriel Fagundes, Victor Frank
+date: "17/05/2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "spdep", "rgdal", "raster", "spatstat", "maptools", "RColorBrewer", "lattice", "geoR", "httr", "kableExtra", "scales", 'smacpod')
+lapply(pkgs, require, character.only = TRUE)
+```
+
+### Questão 1 
+Escolha um estado do sul ou sudeste do Brasil e analise o número de casos de óbitos de alguma doença no ano de 2019, como câncer de mama no estado do Rio de Janeiro. Os dados estão disponíveis em [http://tabnet.datasus.gov.br](http://tabnet.datasus.gov.br).
+
+a) Faça um mapa da proporção de óbitos por município.
+```{r Q1A, echo=FALSE, warning=F, message=F}
+
+```
+
+
+b) Faça um mapa da taxa de mortalidade padronizada por município, um gráfico de dispersão considerando essas taxas e o tamanho da população e um gráfico de densidade das SMRs.
+```{r Q1B, echo=FALSE, warning=F, message=F}
+
+```
+
+c) Calcule o índice de moran para esses dados.
+```{r Q1C, echo=FALSE, warning=F, message=F}
+
+```
+
+d) Calcule a estimativa bayesiana empírica das taxas, faça um mapa das estimativas.
+```{r Q1D, echo=FALSE, warning=F, message=F}
+
+```
+
+e) Calcule o risco relativo utilizando o modelo BYM, utilize o [IDH](https://cidades.ibge.gov.br/brasil/sp/pesquisa/37/30255) e [analfabetismo](http://www2.datasus.gov.br/DATASUS/index.php?area=0206&id=7276981) dos municípios como covariáveis, faça um mapa das estimativas do risco relativo.
+```{r Q1E, echo=FALSE, warning=F, message=F}
+
+```
+
+f) Interprete os parâmetros estimados do modelo da letra _e_.
+
+g) Qual a diferença entre as taxas do modelo bayesiano e a taxa de mortalidade padronizada?
+
+
