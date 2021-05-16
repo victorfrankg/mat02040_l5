@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", 'INLA')
+pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "INLA","stringr","readr")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -51,7 +51,8 @@ df = left_join(map, pop) %>%
      left_join(df_anal, by = c('NM_MUNICIP' = 'municipio')) %>%
      replace(is.na(.), 0) %>%
      mutate(prop = MORTES/Total) %>% 
-     replace(is.na(.), 0)
+     replace(is.na(.), 0) %>%
+     slice(1:496)
         
 
 ```
@@ -160,7 +161,7 @@ leaflet(df) %>%
             title = 'SMR')
 ```
 
-```{r, Q1B dispersao, echo=FALSE, warning=F, message=F}
+```{r Q1B dispersao, echo=FALSE, warning=F, message=F}
 
 graf2 = ggplot(df) +
               geom_point(aes(x= Total, y = smr, text = paste('area' = NM_MUNICIP, 
@@ -191,6 +192,50 @@ moran.mc(df$prop, ww, nsim = 9999)
 
 d) Calcule a estimativa bayesiana empírica das taxas, faça um mapa das estimativas.
 ```{r Q1D, echo=FALSE, warning=F, message=F}
+emp_bayes = EBlocal(ri = df$MORTES, 
+                    ni = df$Total, 
+                    nb = w) %>%
+            replace(is.na(.), 0)
+
+df$bayes_empirico = emp_bayes$est*df$Total/df$E_i
+
+leg = sprintf(
+  "<strong>%s</strong><br/>
+  Real: %.7f <br/>
+  Estimativa: %.7f",
+  df$NM_MUNICIP, 
+  df$MORTES,
+  df$bayes_empirico) %>% 
+  lapply(htmltools::HTML)
+
+# mapa 
+pla = colorBin("YlOrRd", domain = round(df$bayes_empirico,7))
+
+leaflet(df) %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik) %>%
+  addScaleBar(position = c("bottomleft")) %>%
+  addPolygons(
+    color = "#444444",
+    weight = 1, 
+    smoothFactor = 0.5,
+    opacity = 1.0, 
+    fillOpacity = 1, 
+    fillColor = ~ pla(bayes_empirico),
+    highlight = highlightOptions(
+      weight = 2,
+      color = "#666",
+      bringToFront = TRUE),
+    label = leg,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "2px 5px"),
+      textsize = "12px",
+      direction = "auto")
+  ) %>%
+  addLegend(pal = pla, 
+            values = ~(bayes_empirico), 
+            opacity = 1, 
+            labFormat = labelFormat(digits = 7),
+            title = 'Estimativa')
 
 ```
 
