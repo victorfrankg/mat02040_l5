@@ -215,7 +215,7 @@ df$rr <- mod1$summary.fitted[, "mean"]
 cores_legenda <- colorNumeric("RdYlBu", domain = df$rr, reverse = TRUE)
 
 legenda_reativa <- sprintf(
-  "<strong> Condado: %s <br/> SMR: %s </strong> <br/> RR sem efeito ale: %s", #escrita estatica
+  "<strong> Condado: %s <br/> SMR: %s </strong> <br/> RR: %s", #escrita estatica
   df$NM_MUNICIP, round(df$smr, 3), round(df$rr, 3)#valores que mudam na legenda
 ) %>% lapply(htmltools::HTML)
 
@@ -238,7 +238,7 @@ leaflet(df) %>%
                     textsize = "10px",
                     opacity = 0.8,
                     direction = "auto")) %>%
-  addLegend(pal = cores_legenda, values = ~rr, opacity = 1, title = "Sem efeito aleat.")
+  addLegend(pal = cores_legenda, values = ~rr, opacity = 1, title = "Risco Relativo")
 
 ```
 
