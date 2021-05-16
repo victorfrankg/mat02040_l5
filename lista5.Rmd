@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly")
+pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", 'INLA')
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -38,8 +38,17 @@ casos = read_excel("DadosRS.xlsx", col_types = c("skip",
 map = readOGR(dsn = "43MUE250GC_SIR.shp",
                verbose = F) %>% st_as_sf
 
+df_IDH = read_xls("popRS.xls") %>%
+  select(Municipio, IDHM) %>%
+  mutate(Municipio = str_to_upper(Municipio), IDHM = as.numeric(IDHM))
+
+df_anal = read_csv2("analfabetismo.csv") %>%
+  mutate(municipio = str_to_upper(municipio), taxa_anal = taxa_anal/100)
+
 df = left_join(map, pop) %>% 
-     left_join(casos, by = c('NM_MUNICIP' = 'MUNIICIPIO')) %>% 
+     left_join(casos, by = c('NM_MUNICIP' = 'MUNIICIPIO')) %>%
+     left_join(df_IDH, by = c('NM_MUNICIP' = 'Municipio')) %>%
+     left_join(df_anal, by = c('NM_MUNICIP' = 'municipio')) %>%
      replace(is.na(.), 0) %>%
      mutate(prop = MORTES/Total) %>% 
      replace(is.na(.), 0)
@@ -103,8 +112,6 @@ df$r_taxa_global = r_taxa_global
 E_i = df$r_taxa_global*df$Total
 df$E_i = E_i
 
-ggplot(mapsf)+
-    geom_sf(aes(fill = prop_obitos))
 
 smr = df$MORTES/df$E_i
 df$smr = smr
@@ -189,6 +196,49 @@ d) Calcule a estimativa bayesiana empírica das taxas, faça um mapa das estimat
 
 e) Calcule o risco relativo utilizando o modelo BYM, utilize o [IDH](https://cidades.ibge.gov.br/brasil/sp/pesquisa/37/30255) e [analfabetismo](http://www2.datasus.gov.br/DATASUS/index.php?area=0206&id=7276981) dos municípios como covariáveis, faça um mapa das estimativas do risco relativo.
 ```{r Q1E, echo=FALSE, warning=F, message=F}
+id_area = 1:nrow(df)
+
+mod1 = inla(MORTES ~ 1 + taxa_anal + IDHM + f(id_area, model = 'iid'),
+   data = df,
+  family = "poisson",
+  E = df$E_i, control.predictor = list(compute = TRUE),
+  control.compute = list(dic = TRUE, waic = TRUE))
+
+summary(mod1)
+
+df$rr <- mod1$summary.fitted[, "mean"]
+
+```
+
+```{r mapa, echo = F, warning = F, message = F}
+
+cores_legenda <- colorNumeric("RdYlBu", domain = df$rr, reverse = TRUE)
+
+legenda_reativa <- sprintf(
+  "<strong> Condado: %s <br/> SMR: %s </strong> <br/> RR sem efeito ale: %s", #escrita estatica
+  df$NM_MUNICIP, round(df$smr, 3), round(df$rr, 3)#valores que mudam na legenda
+) %>% lapply(htmltools::HTML)
+
+leaflet(df) %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik) %>%
+  addScaleBar(position = c("bottomleft"), options = scaleBarOptions(imperial= FALSE)) %>%
+      addPolygons(fillColor = ~cores_legenda(rr), #indicar a variavel 
+                  weight = 1.5,
+                  opacity = 0.7,
+                  fillOpacity = 0.7,
+                  color = "gray",
+                  highlight = highlightOptions(
+                    weight = 5,
+                    color = "#666",
+                    fillOpacity = 0.7,
+                    bringToFront = TRUE),
+                  label = legenda_reativa,
+                  labelOptions = labelOptions(
+                    style = list("font-weight" = "normal", padding = "6px 11px"),
+                    textsize = "10px",
+                    opacity = 0.8,
+                    direction = "auto")) %>%
+  addLegend(pal = cores_legenda, values = ~rr, opacity = 1, title = "Sem efeito aleat.")
 
 ```
 
