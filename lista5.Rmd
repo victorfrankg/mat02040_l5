@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "spdep", "rgdal", "raster", "spatstat", "maptools", "RColorBrewer", "lattice", "geoR", "httr", "kableExtra", "scales", 'smacpod')
+pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "raster", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -21,8 +21,71 @@ lapply(pkgs, require, character.only = TRUE)
 Escolha um estado do sul ou sudeste do Brasil e analise o número de casos de óbitos de alguma doença no ano de 2019, como câncer de mama no estado do Rio de Janeiro. Os dados estão disponíveis em [http://tabnet.datasus.gov.br](http://tabnet.datasus.gov.br).
 
 a) Faça um mapa da proporção de óbitos por município.
-```{r Q1A, echo=FALSE, warning=F, message=F}
 
+```{r Data Wrangling, echo=FALSE, warning=FALSE, message=FALSE}
+# população censo 2010 (mais recente)
+
+url = "https://censo2010.ibge.gov.br/sinopse/index.php?uf=43"
+pop = url %>% read_html %>% 
+  html_nodes("#div_tabela_dados > table") %>% 
+  html_table() %>% .[[1]] %>% summarise(NM_MUNICIP = toupper(Município),
+                                        Total = as.numeric(gsub("[.]","",Total))) 
+
+casos = read_excel("DadosRS.xlsx", col_types = c("skip",
+                                                 "text", 
+                                                 "numeric"))
+
+map = readOGR(dsn = "43MUE250GC_SIR.shp",
+               verbose = F) %>% st_as_sf
+
+df = left_join(map, pop) %>% 
+     left_join(casos, by = c('NM_MUNICIP' = 'MUNIICIPIO')) %>% 
+     replace(is.na(.),0) %>%
+     mutate(prop = MORTES/Total)
+        
+
+```
+
+```{r Q1A, echo=FALSE, warning=F, message=F}
+leg = sprintf(
+  "<strong>%s</strong><br/>
+  Mortes: %.0f <br/>
+  Moradores: %.0f <br/>
+  Proporção: %.6f ",
+  df$NM_MUNICIP, 
+  df$MORTES,
+  df$Total,
+  df$prop) %>% 
+  lapply(htmltools::HTML)
+
+# mapa 
+pla = colorBin("YlOrRd", domain = round(df$prop,5))
+
+leaflet(df) %>%
+  addProviderTiles(providers$OpenStreetMap.Mapnik) %>%
+  addScaleBar(position = c("bottomleft")) %>%
+  addPolygons(
+    color = "#444444",
+    weight = 1, 
+    smoothFactor = 0.5,
+    opacity = 1.0, 
+    fillOpacity = 1, 
+    fillColor = ~ pla(prop),
+    highlight = highlightOptions(
+      weight = 2,
+      color = "#666",
+      bringToFront = TRUE),
+    label = leg,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "2px 5px"),
+      textsize = "12px",
+      direction = "auto")
+  ) %>%
+  addLegend(pal = pla, 
+            values = ~(df$prop), 
+            opacity = 1, 
+            labFormat = labelFormat(digits = 7),
+            title = 'Proporção')
 ```
 
 
