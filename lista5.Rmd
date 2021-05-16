@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "raster", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest")
+pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -40,8 +40,9 @@ map = readOGR(dsn = "43MUE250GC_SIR.shp",
 
 df = left_join(map, pop) %>% 
      left_join(casos, by = c('NM_MUNICIP' = 'MUNIICIPIO')) %>% 
-     replace(is.na(.),0) %>%
-     mutate(prop = MORTES/Total)
+     replace(is.na(.), 0) %>%
+     mutate(prop = MORTES/Total) %>% 
+     replace(is.na(.), 0)
         
 
 ```
@@ -96,7 +97,13 @@ b) Faça um mapa da taxa de mortalidade padronizada por município, um gráfico 
 
 c) Calcule o índice de moran para esses dados.
 ```{r Q1C, echo=FALSE, warning=F, message=F}
+w =  poly2nb(df$geometry, 
+             row.names = df$NM_MUNICIP)
+ww =  nb2listw(w, 
+               style = 'B') 
 
+# calculo do teste
+moran.mc(df$prop, ww, nsim = 9999)
 ```
 
 d) Calcule a estimativa bayesiana empírica das taxas, faça um mapa das estimativas.
