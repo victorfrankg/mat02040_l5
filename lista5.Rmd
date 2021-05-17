@@ -246,9 +246,10 @@ leaflet(df) %>%
 e) Calcule o risco relativo utilizando o modelo BYM, utilize o [IDH](https://cidades.ibge.gov.br/brasil/sp/pesquisa/37/30255) e [analfabetismo](http://www2.datasus.gov.br/DATASUS/index.php?area=0206&id=7276981) dos municípios como covariáveis, faça um mapa das estimativas do risco relativo.
 ```{r Q1E, echo=FALSE, warning=F, message=F}
 id_area = 1:nrow(df)
+g = poly2nb(df)
 
-mod1 = inla(MORTES ~ 1 + taxa_anal + IDHM + f(id_area, model = 'iid'),
-   data = df,
+mod1 = inla(MORTES ~ 1 + taxa_anal + IDHM + f(id_area, model = 'bym', graph = g),
+  data = df,
   family = "poisson",
   E = df$E_i, control.predictor = list(compute = TRUE),
   control.compute = list(dic = TRUE, waic = TRUE))
@@ -257,6 +258,8 @@ summary(mod1)
 
 df$rr <- mod1$summary.fitted[, "mean"]
 
+
+
 ```
 
 ```{r mapa, echo = F, warning = F, message = F}
@@ -264,7 +267,7 @@ df$rr <- mod1$summary.fitted[, "mean"]
 cores_legenda <- colorNumeric("RdYlBu", domain = df$rr, reverse = TRUE)
 
 legenda_reativa <- sprintf(
-  "<strong> Condado: %s <br/> SMR: %s </strong> <br/> RR: %s", #escrita estatica
+  "<strong> Cidade: %s <br/> SMR: %s </strong> <br/> RR: %s", #escrita estatica
   df$NM_MUNICIP, round(df$smr, 3), round(df$rr, 3)#valores que mudam na legenda
 ) %>% lapply(htmltools::HTML)
 
@@ -293,6 +296,9 @@ leaflet(df) %>%
 
 f) Interprete os parâmetros estimados do modelo da letra _e_.
 
+O parâmetro $\beta_0$ é a linha de base do risco relativo. Para cada unidade que se aumenta nas variáveis IDH e analfabetismo, há um aumento de $100\times exp(\beta_i - 1)\%$ no risco relativo, enquanto o efeito aleatório puro é presente em cada uma das áreas e não compartilhado por nenhuma, e o efeito aleatório espacial leva em conta a estrutura espacial do nosso mapa.  
+
+
 g) Qual a diferença entre as taxas do modelo bayesiano e a taxa de mortalidade padronizada?
 
-
+A taxa de mortalidade padronizada (SMR) é muito sensível a valores extremos que aparecem em localizações de baixa população, e leva apenas em consideração os valores observados e esperados. Já o modelo bayesiano é mais versátil, podendo contar com efeitos fixos (como as variáveis IDH e Analfabetismo acima) e efeitos aleatórios correspondentes à estrutura espacial subjacente.
