@@ -201,11 +201,15 @@ df$bayes_empirico = emp_bayes$est*df$Total/df$E_i
 
 leg = sprintf(
   "<strong>%s</strong><br/>
-  Real: %.7f <br/>
-  Estimativa: %.7f",
+  Bayes: %.7f <br/>
+  SMR: %.7f <br/>
+  Esperado: %.7f <br/>
+  Observado: %.6f",
   df$NM_MUNICIP, 
-  df$MORTES,
-  df$bayes_empirico) %>% 
+  df$bayes_empirico,
+  df$smr,
+  df$E_i,
+  df$MORTES) %>% 
   lapply(htmltools::HTML)
 
 # mapa 
