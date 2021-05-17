@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html  dir="ltr" lang="en" xml:lang="en">
+	<head>
+		<link rel="icon" href="./contents/static/img/favicon.ico">
+		<title>Moodle Acadêmico - UFRGS</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+		<link  rel="stylesheet" type="text/css" href="./contents/static/css/style.css">
+		<script
+			src="https://code.jquery.com/jquery-2.2.4.min.js"
+			integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+		crossorigin="anonymous"></script>
+		<script type="text/javascript" src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.bundle.min.js"></script>
+	</head>
+	<body>
+		<div id="cabecalho">
+			<header id="header"></header>
+			<header id="ListaLinksCabecalho" class="navBar navbar-expand navbar-dark flex-column flex-md-row bd-navbar cinzaTransparente">
+				<div class="navbar-nav-scroll">
+					<ul class="navbar-nav bd-navbar-nav flex-row">
+						<li class="nav-item">
+							<a target="_blank" title="Atividades de ensino realizadas antes de 2016" class="nav-link links_menu" href="https://moodlehistorico.ufrgs.br/">MOODLE HISTÓRICO</a>
+						</li>
+						<span class="espacadorLinks"></span>
+
+						<li class="nav-item">
+							<a target="_blank" title="Atividades de capacitação/treinamento, grupos de pesquisa e gestão" class="nav-link links_menu" href="https://moodlecolaboracao.ufrgs.br/login/index.php">MOODLE COLABORAÇÃO</a>
+						</li>
+
+						<span class="espacadorLinks"></span>
+
+						<li class="nav-item">
+							<a target="_blank" class="nav-link links_menu" href="https://www.ufrgs.br/ajudamoodle/">Ajuda MOODLE</a>
+						</li>
+					</ul>
+				</div>
+				<ul id="areaLogin" class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+					<li class="nav-item">
+						<span class="nav-link links_menu" href="#">Você ainda não se identificou</span>
+					</li>
+				</ul>
+			</header>
+		</div>
+
+		<main id="main">
+			<div id="janelaFormulario">
+				<div id="centerLogo">
+					<div id="logoMoodle">
+						<div id="boxMoodleIcon">
+							<img src="./contents/static/img/LogoMoodle.png"/>
+						</div>
+						<div id="boxMoodleName">
+							<span id="spanMoodleFormulário">Moodle</span>
+							<span id="spanAcademicoFormulário">Acadêmico</span>
+						</div>
+					</div>
+				</div>
+
+				<div id="centerForm">
+					<form  id="formLogin" class="form-signin" action="index.php" method="post">
+						<input id="anchor" type="hidden" name="anchor" value="">
+						<script>document.getElementById('anchor').value = location.hash;</script>
+						<div class="form-group row">
+
+							<div class="col-12">
+								<input id="text1" name="username" placeholder="USUÁRIO" type="text" class="camposFormulario">
+							</div>
+							<div class="col-12">
+								<div id="divSpanInterrogacao">
+									<span style="">?</span>
+								</div>
+								<span id="avisoCookies">O uso de Cookies deve ser permitido no seu navegador</span>
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-12">
+								<input id="text" name="password" placeholder="SENHA" type="password" class="camposFormulario">
+							</div>
+						</div>
+						<div class="form-group row">
+							<div class="col-12">
+								<div class="custom-controls-stacked">
+									<label class="custom-checkbox">
+										<input name="rememberusername" type="checkbox" value="1"> 
+										<span class="custom-control-indicator"></span> 
+										<span class="custom-control-description">Lembrar usuário</span>
+									</label>
+								</div>
+							</div>
+						</div>
+						<div>
+							<div id="botaoDeAcesso">
+								<button name="submit" type="submit" class="botao">ACESSAR</button>
+							</div>
+						</div> 
+						<div id="ajudaLogin">
+							<a target="_blank" href="https://ufrgs.br/ajudamoodle/aluno/acesso/primeiro-acesso.php">Primeiro acesso</a><br/>
+							<a target="_blank" href="https://ufrgs.br/ajudamoodle/aluno/acesso/erro-usuario-senha.php ">Esqueceu usuário ou senha?</a><br/>
+							<a target="_blank" href="https://ufrgs.br/ajudamoodle">Precisa de ajuda?</a><br/>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+				<div style="max-width: 600px!important" class="modal-dialog modal-sm modal-dialog-centered" role="document">
+					<div class="modal-content">
+
+						<div class="modal-body">
+							<button id="modal_close" type="button" class="close" data-dismiss="modal" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+							<a target="_blank" id="noticia" href="http://www.ufrgs.br/das/campanhas/casos-de-comunicacao-de-covid-19-na-ufrgs">
+								<img class="img-fluid" id="imagem_escolhida" src="./contents/static/img/banner_covid/informe.png" />
+							</a>
+						</div>
+
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<footer id="footer">
+			<div class="">
+				<span class="text-muted creditoFoto">Foto: Pâmela de Oliveira Bernardo</span>
+				<div class="iconesRodape">
+					<a target="_blank" href="https://ufrgs.br/ajudamoodle/aluno/acesso/acesso-mobile.php"><img class="imgRodape" src="./contents/static/img/celularIcone.png"/></a>
+					<a target="_blank" href="https://www.facebook.com/ufrgssead/"><img class="imgRodape" src="./contents/static/img/facebookIcone.png"/></a>
+					<a target="_blank" href="http://www.ufrgs.br/sead"><img class="imgRodape" src="./contents/static/img/LogoSEAD_azul.png"/></a>
+					<a target="_blank" href="http://www.ufrgs.br"><img class="imgRodape" src="./contents/static/img/LogoUFRGS_azul.png"/></a>
+				</div>
+			</div>
+		</footer>
+	</body>
+</html>
