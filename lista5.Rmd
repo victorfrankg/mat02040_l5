@@ -22,6 +22,7 @@ Escolha um estado do sul ou sudeste do Brasil e analise o número de casos de ó
 
 a) Faça um mapa da proporção de óbitos por município.
 
+Para este problema escolhemos um banco de dados que relacionava um banco de dados de óbitos por tuberculose no estado do Rio Grande do Sul em 2019.
 ```{r Data Wrangling, echo=FALSE, warning=FALSE, message=FALSE}
 # população censo 2010 (mais recente)
 
@@ -99,6 +100,21 @@ leaflet(df) %>%
             title = 'Proporção')
 ```
 
+```{r Summary, echo=FALSE}
+df_short = df %>%
+           arrange(desc(prop)) %>%
+           data.frame %>%
+           select(c(3,8)) %>%
+           head(.,10)
+
+knitr::kable(df_short, align = 'c') %>%
+  row_spec(0) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "bordered", 'condensed'),
+    full_width = F,
+    position = 'center'
+  )
+```
 
 b) Faça um mapa da taxa de mortalidade padronizada por município, um gráfico de dispersão considerando essas taxas e o tamanho da população e um gráfico de densidade das SMRs.
 ```{r Q1B dados, echo=FALSE, warning=F, message=F}
@@ -122,9 +138,9 @@ df$smr = smr
 ```{r Q1B mapa, echo=FALSE, warning=F, message=F}
 leg = sprintf(
   "<strong>%s</strong><br/>
-  SMR: %.0f <br/>
-  Esperado: %.0f <br/>
-  Observado: %.6f ",
+  SMR: %.7f <br/>
+  Esperado: %.7f <br/>
+  Observado: %1.0f ",
   df$NM_MUNICIP, 
   df$smr,
   df$E_i,
@@ -204,7 +220,7 @@ leg = sprintf(
   Bayes: %.7f <br/>
   SMR: %.7f <br/>
   Esperado: %.7f <br/>
-  Observado: %.6f",
+  Observado: %1.0f",
   df$NM_MUNICIP, 
   df$bayes_empirico,
   df$smr,
