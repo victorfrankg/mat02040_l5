@@ -13,16 +13,131 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "spatstat", "splancs", "sp", "rgdal", "spdep", "spatstat", "maptools", "RColorBrewer", "readxl", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "INLA","stringr","readr", "devtools")
+pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools")
 lapply(pkgs, require, character.only = TRUE)
 ```
+
+<body style="text-align: justify"> 
 
 ### Questão 1
 Os dados a serem analisados são referentes à medidas de elevação de terrenos na França.
 
 a) Faça um mapa com a localização dessas observações.
 
+```{r Data Wrangling and Plot, echo=FALSE}
+df = read.csv('altitude_franca.txt', sep = ';')
+
+# mapa de relevo
+leaflet(df) %>%
+  addTiles(urlTemplate = "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}", 
+           attribution = 'Google')  %>%
+  addCircles(lng = ~Longitude,
+             lat = ~Latitude, 
+             opacity = 1.5) %>%
+  setView(lat = 46.97222761396314, 
+          lng = 3.359108248771387,
+          zoom = 5)
+```
+
+
 b) Faça uma análise exploratória dos dados, avalie a distribuição da variável elevação, faça uma comparação entre esses valores e as coordenadas geográficas das observações.
+
+Nossa variável de interesse se trata da altitude de terrenos na França, como podemos ver no histograma abaixo, a maioria dos valores se encontra na cauda esquerda, caracterizando uma assimetria positiva (ou direita), onde a média dos nossos valores é maior que a mediana do mesmo.
+
+```{r Density + Histogram, echo=FALSE, message=FALSE, warning=FALSE}
+ggdensity(df, 
+          x = "Altitude", 
+          alpha=.2, 
+          fill="#FF6666", 
+          title = "Densidade da Altitude") +
+  scale_x_continuous(limits = c(-500, 950)) +
+  stat_overlay_normal_density(color = "red", linetype = "dashed")+
+  geom_histogram(aes(y=..density..), 
+                 binwidth = 45, 
+                 color = 'black',
+                 fill = 'white',
+                 alpha = .4,
+                 position="identity")  
+
+data.frame('Média' = mean(df$Altitude),
+           'Mediana' = median(df$Altitude))
+```
+
+Realizando o teste de _Shapiro-Wilk_ concluímos que não existe normalidade em nossa variável de interesse. 
+
+```{r Shapiro 1,echo=FALSE}
+shapiro.test(df$Altitude)
+```
+
+Porém ao aplicar a função _powerTransform_ do pacote **car** que realiza Box-Cox, podemos ver que uma transformação logarítmica é sugerida.
+
+```{r Box-Cox, echo=FALSE}
+car::powerTransform(df$Altitude)
+```
+
+E vemos que tal ajuste realmente torna acaba por normalizar nossa variável, como vemos abaixo:
+
+```{r Density + Histogram w/ Box-Cox, echo=FALSE, message=FALSE, warning=FALSE}
+dat = df %>% mutate(Altitude = log(Altitude))
+
+ggdensity(dat, 
+          x = "Altitude", 
+          alpha=.2, 
+          fill="#FF6666", 
+          title = "Densidade da Log-Altitude") +
+  scale_x_continuous(limits = c(-10, 20)) +
+  stat_overlay_normal_density(color = "red", linetype = "dashed")+
+  geom_histogram(aes(y=..density..), 
+                 color = 'black',
+                 fill = 'white',
+                 alpha = .4,
+                 position="identity")
+
+data.frame('Média' = mean(dat$Altitude),
+           'Mediana' = median(dat$Altitude))
+```
+Para confirmação rodamos novamente o teste de normalidade agora não rejeitando a hipótese nula.
+
+```{r Shapiro 2,echo=FALSE}
+shapiro.test(dat$Altitude)
+```
+
+Para analisar a distribuição dos pontos pelas coordenadas iremos utilizar apenas aqueles dentro da França, sem considerarmos suas colônias. No primeiro gráfico acaba sendo complicado tirarmos qualquer conclusão, por isso realizamos um novo _plot_ dividindo a variável altitude em intervalos.
+
+```{r Scatterplot, echo=FALSE}
+df_final = df %>% 
+            filter(Longitude > -56 & 
+                     Latitude > 42.7)
+
+ggplot(df_final, 
+       aes(x = Longitude,
+           y = Latitude, 
+           col = Altitude)) +
+  geom_point() +
+  theme_minimal()
+```
+
+```{r Cut + Scatterplot, echo=FALSE}
+df_final$breaks = cut(df_final$Altitude,
+                     breaks = seq(0,900,50))
+ggplot(df_final, 
+       aes(x = Longitude,
+           y = Latitude,
+           col = breaks)) +
+  geom_point() + 
+  theme_minimal()
+```
+
+Podemos ver que parece haver uma leve correlação negativa entre Latitude e Altitude, já uma realação contrária quando tratamos de Longitude, tal fato realmente pode ser visto ao calcularmos o coeficiente de _pearson_.
+
+```{r Correlation, echo=FALSE}
+
+data.frame('Lng_Alt' = cor(df_final$Longitude, 
+                           df_final$Altitude),
+           'Lat_Alt' = cor(df_final$Latitude,
+                           df_final$Altitude))
+```
+
 
 c) Faça um plot da diferença entre os valores observados, dado a distância entre os pares de observações (*variogram cloud*), avalie se essa nuvem de pontos indica a presença de *outliers*.
 
