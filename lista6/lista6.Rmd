@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools")
+pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools", "ggplot2", "sp", "gstat", "lattice")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -25,12 +25,12 @@ Os dados a serem analisados são referentes à medidas de elevação de terrenos
 a) Faça um mapa com a localização dessas observações.
 
 ```{r Data Wrangling and Plot, echo=FALSE}
-df = read.csv('altitude_franca.txt', sep = ';')
+df = read.csv("altitude_franca.txt", sep = ";")
 
 # mapa de relevo
 leaflet(df) %>%
   addTiles(urlTemplate = "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}", 
-           attribution = 'Google')  %>%
+           attribution = "Google")  %>%
   addCircles(lng = ~Longitude,
              lat = ~Latitude, 
              opacity = 1.5) %>%
@@ -42,7 +42,7 @@ leaflet(df) %>%
 
 b) Faça uma análise exploratória dos dados, avalie a distribuição da variável elevação, faça uma comparação entre esses valores e as coordenadas geográficas das observações.
 
-Nossa variável de interesse se trata da altitude de terrenos na França, como podemos ver no histograma abaixo, a maioria dos valores se encontra na cauda esquerda, caracterizando uma assimetria positiva (ou direita), onde a média dos nossos valores é maior que a mediana do mesmo.
+Nossa variável de interesse se trata da altitude de terrenos na França, como podemos ver no histograma abaixo, a maioria dos valores se encontra na cauda esquerda, caracterizando uma assimetria positiva (ou direita), onde a média dos nossos valores é maior que a mediana.
 
 ```{r Density + Histogram, echo=FALSE, message=FALSE, warning=FALSE}
 ggdensity(df, 
@@ -54,13 +54,13 @@ ggdensity(df,
   stat_overlay_normal_density(color = "red", linetype = "dashed")+
   geom_histogram(aes(y=..density..), 
                  binwidth = 45, 
-                 color = 'black',
-                 fill = 'white',
+                 color = "black",
+                 fill = "white",
                  alpha = .4,
                  position="identity")  
 
-data.frame('Média' = mean(df$Altitude),
-           'Mediana' = median(df$Altitude))
+data.frame("Média" = mean(df$Altitude),
+           "Mediana" = median(df$Altitude))
 ```
 
 Realizando o teste de _Shapiro-Wilk_ concluímos que não existe normalidade em nossa variável de interesse. 
@@ -69,13 +69,13 @@ Realizando o teste de _Shapiro-Wilk_ concluímos que não existe normalidade em 
 shapiro.test(df$Altitude)
 ```
 
-Porém ao aplicar a função _powerTransform_ do pacote **car** que realiza Box-Cox, podemos ver que uma transformação logarítmica é sugerida.
+Porém ao aplicar a função `powerTransform` do pacote `car` que realiza a transformação Box-Cox, podemos ver que uma transformação logarítmica é sugerida.
 
 ```{r Box-Cox, echo=FALSE}
 car::powerTransform(df$Altitude)
 ```
 
-E vemos que tal ajuste realmente torna acaba por normalizar nossa variável, como vemos abaixo:
+E vemos que tal ajuste realmente acaba por normalizar nossa variável, como vemos abaixo:
 
 ```{r Density + Histogram w/ Box-Cox, echo=FALSE, message=FALSE, warning=FALSE}
 dat = df %>% mutate(Altitude = log(Altitude))
@@ -88,15 +88,15 @@ ggdensity(dat,
   scale_x_continuous(limits = c(-10, 20)) +
   stat_overlay_normal_density(color = "red", linetype = "dashed")+
   geom_histogram(aes(y=..density..), 
-                 color = 'black',
-                 fill = 'white',
+                 color = "black",
+                 fill = "white",
                  alpha = .4,
                  position="identity")
 
-data.frame('Média' = mean(dat$Altitude),
-           'Mediana' = median(dat$Altitude))
+data.frame("Média" = mean(dat$Altitude),
+           "Mediana" = median(dat$Altitude))
 ```
-Para confirmação rodamos novamente o teste de normalidade agora não rejeitando a hipótese nula.
+Para confirmação fazemos novamente o teste de normalidade, agora não rejeitando a hipótese nula.
 
 ```{r Shapiro 2,echo=FALSE}
 shapiro.test(dat$Altitude)
@@ -128,18 +128,24 @@ ggplot(df_final,
   theme_minimal()
 ```
 
-Podemos ver que parece haver uma leve correlação negativa entre Latitude e Altitude, já uma realação contrária quando tratamos de Longitude, tal fato realmente pode ser visto ao calcularmos o coeficiente de _pearson_.
+Podemos ver que parece haver uma leve correlação negativa entre Latitude e Altitude, já uma relação contrária quando tratamos de Longitude, tal fato realmente pode ser visto ao calcularmos o coeficiente de _pearson_.
 
 ```{r Correlation, echo=FALSE}
 
-data.frame('Lng_Alt' = cor(df_final$Longitude, 
+data.frame("Lng_Alt" = cor(df_final$Longitude, 
                            df_final$Altitude),
-           'Lat_Alt' = cor(df_final$Latitude,
+           "Lat_Alt" = cor(df_final$Latitude,
                            df_final$Altitude))
 ```
 
 
 c) Faça um plot da diferença entre os valores observados, dado a distância entre os pares de observações (*variogram cloud*), avalie se essa nuvem de pontos indica a presença de *outliers*.
+```{r Variogram Cloud, echo=FALSE}
+vgm_cloud <- variogram(Altitude ~ 1, locations =  ~Latitude + Longitude, data = df_final, cloud = T)
+plot(vgm_cloud)
+```
+
+<b>Conclusão:</b>
 
 d) Faça a estimação do semivariograma, considere os modelos exponencial, e matern. Qual o valor da Sill, do Range e do efeito pepita para o modelo matern. Interprete esses parâmetros. (Dica: função `print.eyefit`)
 
@@ -149,14 +155,123 @@ e) Avalie a presença de anisometropia.
 O banco de dados da questão 2 são referentes à precipitação no estado da Califórnia, além da quantidade de chuva o banco possui a covariável altitude. Escolha um dos meses para o exercício.
 
 ```{r Q2 Setup, echo = FALSE, message = FALSE, warning = FALSE}
-if (!require("rspatial")) devtools::install_github('rspatial/rspatial')
+if (!require("rspatial")) devtools::install_github("rspatial/rspatial")
 library(rspatial)
-d <- sp_data('precipitation')
+d <- sp_data("precipitation")
 ```
 
 a) Faça um mapa com a localização dessas observações e uma análise exploratória dos dados.
 
+Optamos pelos registros do mês de Setembro.
+```{r Q2-Data Wrangling and Plot, echo=FALSE}
+df <- subset(d, select = c(ID:ALT,SEP))
+
+leaflet(df) %>%
+  addTiles(urlTemplate = "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}", 
+           attribution = "Google")  %>%
+  addCircles(lng = ~LONG,
+             lat = ~LAT, 
+             opacity = 1.5) %>%
+  setView(lat = 36.97844, 
+          lng = -120.0452,
+          zoom = 6)
+```
+
+De maneira similar à questão 1, estudamos a distribuição da variável de interesse (precipitação) vendo sua densidade:
+```{r Q2-Density + Histogram, echo=FALSE, message=FALSE, warning=FALSE}
+ggdensity(df,
+          x = "SEP",
+          alpha=.2,
+          fill="#FF6666",
+          title = "Densidade da Precipitação") +
+  scale_x_continuous(limits = c(-50, 80)) +
+  stat_overlay_normal_density(color = "red", linetype = "dashed")+
+  geom_histogram(aes(y=..density..),
+                 binwidth = 10,
+                 color = "black",
+                 fill = "white",
+                 alpha = .4,
+                 position="identity")
+
+data.frame("Média" = mean(df$SEP),
+           "Mediana" = median(df$SEP))
+```
+Como podemos ver pelo histograma, a maioria dos valores se encontra na cauda esquerda, caracterizando uma assimetria positiva (ou direita), onde a média dos nossos valores é maior que a mediana.
+
+Realizando o teste de _Shapiro-Wilk_ concluímos que não existe normalidade em nossa variável de interesse. 
+```{r Q2-Shapiro Precipitation,echo=FALSE}
+shapiro.test(df$SEP)
+```
+
+A relação da precipitação $\times$ altitude / elevação também é de nosso interesse, então repetimos os mesmos passos anteriores para essa variável:
+```{r Q2-Density + Histogram Altitude, echo=FALSE, message=FALSE, warning=FALSE}
+ggdensity(df,
+          x = "ALT",
+          alpha=.2,
+          fill="#FF6666",
+          title = "Densidade da Altitude") +
+  scale_x_continuous(limits = c(-700, 3300)) +
+  stat_overlay_normal_density(color = "red", linetype = "dashed")+
+  geom_histogram(aes(y=..density..),
+                 binwidth = 75,
+                 color = "black",
+                 fill = "white",
+                 alpha = .4,
+                 position="identity")
+
+data.frame("Média" = mean(df$ALT),
+           "Mediana" = median(df$ALT))
+```
+Assim como para a precipitação, a maioria dos valores se encontra na cauda esquerda, caracterizando também assimetria positiva.
+
+Realizando o teste de _Shapiro-Wilk_ concluímos que não existe normalidade.
+```{r Q2-Shapiro Altitude,echo=FALSE}
+shapiro.test(df$ALT)
+```
+
+Além disso, plotamos a relação entre as variáveis através de um gráfico de dispersão:
+```{r Q2-Scatterplot, echo=FALSE}
+df$breaks = cut(df$ALT,
+                     breaks = seq(-200,3000,200), dig.lab = 4)
+ggplot(df, 
+       aes(x = LONG,
+           y = LAT, 
+           col = breaks)) +
+  geom_point() +
+  theme_minimal()
+
+```
+
+Quanto às correlações, obtemos um resultado inverso ao apresentado na questão 1, onde percebemos correlação negativa olhando Longitude $\times$ Precipitação, e positiva moderada olhando Latitude $\times$ Precipitação:
+```{r Q2-Correlation, echo=FALSE}
+data.frame("Long_Precip" = cor(df$LONG, 
+                           df$SEP),
+           "Lat_Precip" = cor(df$LAT,
+                           df$SEP))
+```
+
 b) Estime o semivariograma, para as funções de covariância exponencial, esférica e gaussiana. Interprete os parâmetros estimados de sill, range e efeito pepita da função de covariância exponencial.
+```{r Q2-Variograms, warning=FALSE, message=FALSE, echo=FALSE}
+variograma <- variogram(SEP ~ 1, locations =  ~LAT+LONG, data = df)
+
+#vgm : (sill, Modelo, intervalo, valor pepita)
+
+# Modelo Exponencial
+fit_exp <- fit.variogram(variograma, vgm("Exp"))
+plot(variograma, fit_exp, main =  "Covariância Exponencial")
+
+# Modelo Esférico
+fit_sph <- fit.variogram(variograma, vgm("Sph"))
+plot(variograma, fit_sph, main =  "Covariância Esférica")
+
+# Modelo Gaussiano
+fit_gau <- fit.variogram(variograma, vgm("Gau"))
+plot(variograma, fit_gau, main =  "Covariância Gaussiana")
+
+fit_exp
+```
+
+Podemos perceber que o variograma com modelo exponencial estimou um efeito pepita igual à zero, ou seja, o semivariograma intercepta o eixo das ordenadas na altura 0. O sill (altura no eixo $y$) atinge o valor de 89,3, enquanto o range, que representa a distância entre as observações que são mais fortemente correlacionadas espacialmente, é de 1,68.
 
 c) Calcule o os parâmetros da função de covariância exponencial por meio da função `likfit` do pacote geoR. Compare com os resultados da letra *b*.
 
