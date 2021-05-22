@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools", "ggplot2", "sp", "gstat", "lattice")
+pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools", "ggplot2", "sp", "gstat", "lattice", "geoR")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -148,8 +148,32 @@ plot(vgm_cloud)
 <b>Conclusão:</b>
 
 d) Faça a estimação do semivariograma, considere os modelos exponencial, e matern. Qual o valor da Sill, do Range e do efeito pepita para o modelo matern. Interprete esses parâmetros. (Dica: função `print.eyefit`)
+```{r Variogram, message=FALSE, warning=FALSE, echo=FALSE}
+variograma <- variogram(Altitude ~ 1, locations =  ~Latitude + Longitude, data = df_final)
+fit_exp <- fit.variogram(variograma, vgm("Exp"))
+fit_mat <- fit.variogram(variograma, vgm("Mat"))
+plot(variograma, fit_mat, main =  "Matern")
+
+fit_mat
+```
+
+Podemos perceber que o variograma com modelo Matern estimou um efeito pepita igual à zero. O sill (altura no eixo $y$) atinge o valor de 25768,3, enquanto o range, que representa a distância entre as observações que são mais fortemente correlacionadas espacialmente, é de -2,2.
 
 e) Avalie a presença de anisometropia.
+```{r Anisometropy, warning=FALSE, message=FALSE, echo=FALSE}
+variograma <-
+  variogram(
+    Altitude ~ 1,
+    locations =  ~ Latitude + Longitude,
+    data = df_final,
+    alpha = seq(0, 135, 45)
+  )
+
+ggplot(aes(x = dist, y = gamma), data = variograma) +
+  geom_point() +
+  facet_wrap( ~ dir.hor)
+```
+
 
 ### Questão 2
 O banco de dados da questão 2 são referentes à precipitação no estado da Califórnia, além da quantidade de chuva o banco possui a covariável altitude. Escolha um dos meses para o exercício.
@@ -271,11 +295,26 @@ plot(variograma, fit_gau, main =  "Covariância Gaussiana")
 fit_exp
 ```
 
-Podemos perceber que o variograma com modelo exponencial estimou um efeito pepita igual à zero, ou seja, o semivariograma intercepta o eixo das ordenadas na altura 0. O sill (altura no eixo $y$) atinge o valor de 89,3, enquanto o range, que representa a distância entre as observações que são mais fortemente correlacionadas espacialmente, é de 1,68.
+Podemos perceber que o variograma com modelo exponencial estimou um efeito pepita igual à zero, ou seja, o semivariograma intercepta o eixo das ordenadas na altura 0. O sill (altura no eixo $y$) atinge o valor de 89,3, distante da variância dos dados, que fica em torno de 102; quanto ao range, que representa a distância máxima entre as observações espacialmente correlacionadas espacialmente, é de 1,68.
 
 c) Calcule o os parâmetros da função de covariância exponencial por meio da função `likfit` do pacote geoR. Compare com os resultados da letra *b*.
+```{r likfit, warning=FALSE, message=FALSE, echo=FALSE}
+df_geo <- subset(df, select = c(LAT, LONG, SEP))
+df_geo <- as.geodata(df_geo)
+m <- likfit(df_geo, ini = c(1, 1), messages = F)
+data.frame("Sill estimado" = m$cov.pars[[1]],
+           "Range estimado" = m$cov.pars[[2]])
+```
+
 
 d) Faça a predição da superfície de chuva, não considere nenhuma covariável nessa estimativa. Plote o mapa de calor das estimativas e de suas variâncias. (Dica: função `polygrid`)
+```{r Kriging}
+#df_grid <- polygrid(...)
+#df_krig <- krige(SEP ~ 1, data = df, locations = df_grid, model = fit_exp)
+#spplot(df_krig["var1.var])
+
+```
+
 
 e) Refaça a letra *d*, mas utilize a covariável altitude na krigagem.
 
