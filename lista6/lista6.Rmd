@@ -13,7 +13,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools", "ggplot2", "sp", "gstat", "lattice", "geoR")
+pkgs <- c("tidyverse", "leaflet", "sf", "dplyr", "kableExtra", "scales", "smacpod", "rvest", "plotly", "ggpubr","stringr","readr", "devtools", "ggplot2", "sp", "gstat", "lattice", "geoR", 'ggpubr', "RColorBrewer")
 lapply(pkgs, require, character.only = TRUE)
 ```
 
@@ -102,13 +102,62 @@ Para confirmação fazemos novamente o teste de normalidade, agora não rejeitan
 shapiro.test(dat$Altitude)
 ```
 
-Para analisar a distribuição dos pontos pelas coordenadas iremos utilizar apenas aqueles dentro da França, sem considerarmos suas colônias. No primeiro gráfico acaba sendo complicado tirarmos qualquer conclusão, por isso realizamos um novo _plot_ dividindo a variável altitude em intervalos.
+Para analisar a distribuição dos pontos pelas coordenadas iremos utilizar apenas aqueles dentro da França, sem considerarmos suas colônias. Veja o mapa a seguir:
 
-```{r Scatterplot, echo=FALSE}
+
+```{r Scatterplot 1, echo=FALSE}
 df_final = df %>% 
             filter(Longitude > -56 & 
                      Latitude > 42.7)
 
+
+```
+
+```{r, include = T}
+df_map = df_final
+
+coordinates(df_map) = ~ Longitude + Latitude
+proj4string(df_map) = CRS("+init=epsg:28992")
+
+df_final$breaks = cut(df_map$Altitude,
+                     breaks = seq(0,900,50))
+
+pal = colorNumeric(palette = 'YlOrRd', 
+                  domain = df_map$Altitude,
+                  reverse = F)
+leaflet(df_map)  %>%
+  addTiles(urlTemplate = "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}", 
+           attribution = "Google")   %>%
+  addCircles(
+    color = ~pal(Altitude),
+    radius = 15,
+    opacity = 1
+  ) %>%
+  addLegend("topleft", pal = pal, values = ~Altitude,
+    title = "Altitude",
+    opacity = 1
+  )
+
+#pal = colorFactor(palette = 'YlOrRd', 
+#                  domain = df_final$breaks,
+#                  reverse = F)
+#
+#leaflet(df_map)  %>%
+#  addTiles(urlTemplate = "http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}", 
+#           attribution = "Google")   %>%
+#  addCircles(
+#    color = ~pal(breaks),
+#    radius = 15,
+#    opacity = 1
+#  ) %>%
+#  addLegend("topleft", pal = pal, values = ~breaks,
+#    title = "Altitude",
+#    opacity = 1
+#  )
+```
+
+
+```{r Scatterplot 2, echo=FALSE, eval = F}
 ggplot(df_final, 
        aes(x = Longitude,
            y = Latitude, 
@@ -117,7 +166,7 @@ ggplot(df_final,
   theme_minimal()
 ```
 
-```{r Cut + Scatterplot, echo=FALSE}
+```{r Cut + Scatterplot, echo=FALSE, eval = F}
 df_final$breaks = cut(df_final$Altitude,
                      breaks = seq(0,900,50))
 ggplot(df_final, 
@@ -141,23 +190,26 @@ data.frame("Lng_Alt" = cor(df_final$Longitude,
 
 c) Faça um plot da diferença entre os valores observados, dado a distância entre os pares de observações (*variogram cloud*), avalie se essa nuvem de pontos indica a presença de *outliers*.
 ```{r Variogram Cloud, echo=FALSE}
-vgm_cloud <- variogram(Altitude ~ 1, locations =  ~Latitude + Longitude, data = df_final, cloud = T)
+vgm_cloud <- variogram(Altitude ~ 1, locations =  ~Longitude + Latitude, data = df_final, cloud = T)
 plot(vgm_cloud)
 ```
 
-<b>Conclusão:</b>
+<b>Conclusão:</b> Não parecem haver outliers. 
 
 d) Faça a estimação do semivariograma, considere os modelos exponencial, e matern. Qual o valor da Sill, do Range e do efeito pepita para o modelo matern. Interprete esses parâmetros. (Dica: função `print.eyefit`)
 ```{r Variogram, message=FALSE, warning=FALSE, echo=FALSE}
-variograma <- variogram(Altitude ~ 1, locations =  ~Latitude + Longitude, data = df_final)
+variograma <- variogram(log(Altitude) ~ 1, locations =  ~Longitude + Latitude, data = df_final)
 fit_exp <- fit.variogram(variograma, vgm("Exp"))
 fit_mat <- fit.variogram(variograma, vgm("Mat"))
+
+
+fit_exp 
+plot(variograma, fit_exp)
 plot(variograma, fit_mat, main =  "Matern")
 
-fit_mat
 ```
 
-Podemos perceber que o variograma com modelo Matern estimou um efeito pepita igual à zero. O sill (altura no eixo $y$) atinge o valor de 25768,3, enquanto o range, que representa a distância entre as observações que são mais fortemente correlacionadas espacialmente, é de -2,2.
+Podemos perceber que o variograma com modelo Matern estimou um efeito pepita igual à zero, ou seja, não parece haver grandes diferenças entre medições que estão a uma distância 0 uma da outra. O sill (altura no eixo $y$) atinge o valor de 1.929, enquanto o range, que representa a distância entre as observações que são mais fortemente correlacionadas espacialmente, é de 0.494. Os dois modelos estimaram as mesmas curvas para o semivariograma. 
 
 e) Avalie a presença de anisometropia.
 ```{r Anisometropy, warning=FALSE, message=FALSE, echo=FALSE}
@@ -174,6 +226,7 @@ ggplot(aes(x = dist, y = gamma), data = variograma) +
   facet_wrap( ~ dir.hor)
 ```
 
+Os semivariogramas parecem ser os mesmos, independente de qual direção que estamos olhando, portanto concluímos que os dados são isotrópicos. 
 
 ### Questão 2
 O banco de dados da questão 2 são referentes à precipitação no estado da Califórnia, além da quantidade de chuva o banco possui a covariável altitude. Escolha um dos meses para o exercício.
@@ -295,7 +348,7 @@ plot(variograma, fit_gau, main =  "Covariância Gaussiana")
 fit_exp
 ```
 
-Podemos perceber que o variograma com modelo exponencial estimou um efeito pepita igual à zero, ou seja, o semivariograma intercepta o eixo das ordenadas na altura 0. O sill (altura no eixo $y$) atinge o valor de 89,3, distante da variância dos dados, que fica em torno de 102; quanto ao range, que representa a distância máxima entre as observações espacialmente correlacionadas espacialmente, é de 1,68.
+Podemos perceber que o variograma com modelo exponencial estimou um efeito pepita igual à zero, ou seja, o semivariograma intercepta o eixo das ordenadas na altura 0 e nesse caso não é encontrada nenhuma diferença entre dois pontos que estejam um ao lado do outro. O sill (altura no eixo $y$) atinge o valor de 89,3, distante da variância dos dados, que fica em torno de 102; quanto ao range, que representa a distância máxima entre as observações espacialmente correlacionadas espacialmente, é de 1,68.
 
 c) Calcule o os parâmetros da função de covariância exponencial por meio da função `likfit` do pacote geoR. Compare com os resultados da letra *b*.
 ```{r likfit, warning=FALSE, message=FALSE, echo=FALSE}
@@ -305,10 +358,39 @@ m <- likfit(df_geo, ini = c(1, 1), messages = F)
 data.frame("Sill estimado" = m$cov.pars[[1]],
            "Range estimado" = m$cov.pars[[2]])
 ```
-
+Os parâmetros estimados pela _likfit_ são os acima. Aqui é estimada uma variância maior dos dados quando comparamos o Sill das duas implementações. Porém no segundo caso tivemos um range estimado menor, o que quer dizer que as observações se tornam espacialmente independentes a uma distância menor. 
 
 d) Faça a predição da superfície de chuva, não considere nenhuma covariável nessa estimativa. Plote o mapa de calor das estimativas e de suas variâncias. (Dica: função `polygrid`)
-```{r Kriging}
+```{r Kriging, echo = F, message = F, eval = F}
+library(maps)
+library(sf)
+#devtools::install_github("UrbanInstitute/urbnmapr")
+
+cali = get_urbn_map('states', sf = T) %>%
+  filter(state_abbv == 'CA')
+
+st_transform(cali, "+init=epsg:28992")
+
+mapsf <- st_as_sf(cali, coords = c('long', 'lat'), crs = 28992)
+
+
+grid <- st_make_grid(mapsf, n=c(200, 200), 
+                     what = "centers", 
+                     square=TRUE) %>% 
+  st_intersection(st_geometry(mapsf)) 
+
+grid <- do.call(rbind, st_geometry(grid)) %>% 
+  as_tibble() %>% 
+  setNames(c("x","y"))
+
+gridded(grid) <- ~x + y  # transforma na classe sp
+proj4string(grid) <- CRS("+init=epsg:28992")
+
+ggplot(data.frame(grid))+
+  geom_point(aes(x=x, y=y), color = "grey", alpha=0.2)+
+  geom_point(aes(x=LONG, y=LAT), alpha = 0.5, data = data.frame(df))
+
+
 #df_grid <- polygrid(...)
 #df_krig <- krige(SEP ~ 1, data = df, locations = df_grid, model = fit_exp)
 #spplot(df_krig["var1.var])
